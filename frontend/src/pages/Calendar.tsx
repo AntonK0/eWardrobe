@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -6,6 +6,16 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
 export default function Calendar() {
   const [selectedDay, setSelectedDay] = useState(0)
   const [isSpinning, setIsSpinning] = useState(false)
+  const spinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (spinTimeoutRef.current) {
+        clearTimeout(spinTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // TODO: Replace with real planned outfits from your backend
   const plannedOutfits: Record<string, string | null> = {
@@ -19,10 +29,15 @@ export default function Calendar() {
   }
 
   const spinWheel = () => {
+    // Clear any existing timeout before starting a new spin
+    if (spinTimeoutRef.current) {
+      clearTimeout(spinTimeoutRef.current)
+    }
+    
     setIsSpinning(true)
     const randomDay = Math.floor(Math.random() * 7)
     
-    setTimeout(() => {
+    spinTimeoutRef.current = setTimeout(() => {
       setSelectedDay(randomDay)
       setIsSpinning(false)
     }, 1000)
