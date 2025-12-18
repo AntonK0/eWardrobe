@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from auth import get_current_user, get_user_id
 
-app = FastAPI()
+app = FastAPI(title="eWardrobe API")
 
 # Allow your React frontend to make requests
 app.add_middleware(
@@ -12,10 +13,63 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# ==================== Public Routes ====================
+
 @app.get("/")
 def read_root():
     return {"message": "Hello from eWardrobe API"}
 
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+# ==================== Protected Routes ====================
+
+@app.get("/api/me")
+async def get_user_profile(user: dict = Depends(get_current_user)):
+    """Get the current authenticated user's profile."""
+    return {
+        "user_id": get_user_id(user),
+        "email": user.get("email"),
+        "name": user.get("name"),
+    }
+
+
+@app.get("/api/clothes")
+async def get_clothes(user: dict = Depends(get_current_user)):
+    """Get all clothes for the authenticated user."""
+    user_id = get_user_id(user)
+    # TODO: Replace with actual database query
+    return {
+        "user_id": user_id,
+        "clothes": [],  # Placeholder - connect to your database
+    }
+
+
+@app.post("/api/clothes")
+async def add_clothing(
+    clothing: dict,
+    user: dict = Depends(get_current_user)
+):
+    """Add a new clothing item for the authenticated user."""
+    user_id = get_user_id(user)
+    # TODO: Save to database with user_id
+    return {
+        "message": "Clothing added successfully",
+        "user_id": user_id,
+        "clothing": clothing,
+    }
+
+
+@app.get("/api/outfits")
+async def get_outfits(user: dict = Depends(get_current_user)):
+    """Get all saved outfits for the authenticated user."""
+    user_id = get_user_id(user)
+    # TODO: Replace with actual database query
+    return {
+        "user_id": user_id,
+        "outfits": [],  # Placeholder
+    }

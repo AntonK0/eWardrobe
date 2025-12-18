@@ -1,5 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Wardrobe from './pages/Wardrobe'
@@ -11,13 +12,13 @@ import SavedOutfits from './pages/SavedOutfits'
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public pages (no sidebar) */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
+    <Routes>
+      {/* Public pages (no sidebar) */}
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
 
-        {/* App pages (with sidebar) */}
+      {/* Protected pages (with sidebar, requires authentication) */}
+      <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route path="/wardrobe" element={<Wardrobe />} />
           <Route path="/add" element={<AddClothings />} />
@@ -26,8 +27,8 @@ function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-      </Routes>
-    </BrowserRouter>
+      </Route>
+    </Routes>
   )
 }
 
