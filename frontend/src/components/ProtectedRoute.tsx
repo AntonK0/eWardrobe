@@ -1,8 +1,12 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate, Outlet } from 'react-router-dom'
+import { useUserSync } from '../hooks/useUserSync'
 
 export default function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth0()
+  
+  // Sync user to database when they first access a protected route
+  useUserSync()
 
   if (isLoading) {
     return (
