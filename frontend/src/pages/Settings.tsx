@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { User, Bell, Palette, LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useAuth0 } from '@auth0/auth0-react'
 
 export default function Settings() {
-  const navigate = useNavigate()
+  const { user, logout } = useAuth0()
   const [notifications, setNotifications] = useState(true)
 
   const handleLogout = () => {
-    // TODO: Clear your auth state
-    navigate('/login')
+    logout({ logoutParams: { returnTo: window.location.origin } })
   }
 
   return (
@@ -23,10 +22,18 @@ export default function Settings() {
         </h2>
         
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--accent-wood-light)] to-[var(--accent-wood)]" />
+          {user?.picture ? (
+            <img 
+              src={user.picture} 
+              alt={user.name || 'Profile'} 
+              className="w-16 h-16 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--accent-wood-light)] to-[var(--accent-wood)]" />
+          )}
           <div>
-            <p className="text-[var(--text-primary)] font-medium">John Doe</p>
-            <p className="text-[var(--text-muted)] text-sm">john@example.com</p>
+            <p className="text-[var(--text-primary)] font-medium">{user?.name || 'User'}</p>
+            <p className="text-[var(--text-muted)] text-sm">{user?.email || ''}</p>
           </div>
         </div>
 
