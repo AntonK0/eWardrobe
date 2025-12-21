@@ -52,29 +52,34 @@ async def get_user_by_email(email: str) -> Optional[dict]:
         return dict(row) if row else None
 
 
-async def create_user(auth0_id: str, email: str, name: str, avatar_url: str = None) -> dict:
-    """Create a new user. Returns the created user."""
+async def get_or_create_user(auth0_id: str, email: str, name: str, avatar_url: str = None) -> dict:
+    """
+    Get a user by auth0_id, or create if they don't exist.
+    Uses UPSERT to handle race conditions and duplicates.
+    This is called after Auth0 login to sync the user to our database.
+    """
+    # Generate a unique placeholder email if none provided
+    # This avoids unique constraint violations on empty emails
+    safe_email = email if email else f"{auth0_id.replace('|', '_')}@placeholder.local"
+    
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
             INSERT INTO users (auth0_id, email, name, avatar_url)
             VALUES ($1, $2, $3, $4)
+            ON CONFLICT (auth0_id) DO UPDATE SET
+                email = CASE 
+                    WHEN EXCLUDED.email NOT LIKE '%@placeholder.local' THEN EXCLUDED.email
+                    ELSE users.email
+                END,
+                name = COALESCE(NULLIF(EXCLUDED.name, ''), users.name),
+                avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url),
+                updated_at = CURRENT_TIMESTAMP
             RETURNING id, auth0_id, email, name, avatar_url, created_at, updated_at
             """,
-            auth0_id, email, name, avatar_url
+            auth0_id, safe_email, name or 'User', avatar_url
         )
         return dict(row)
-
-
-async def get_or_create_user(auth0_id: str, email: str, name: str, avatar_url: str = None) -> dict:
-    """
-    Get a user by auth0_id, or create if they don't exist.
-    This is called after Auth0 login to sync the user to our database.
-    """
-    user = await get_user_by_auth0_id(auth0_id)
-    if user:
-        return user
-    return await create_user(auth0_id, email, name, avatar_url)
 
 
 async def update_user(auth0_id: str, name: str = None, avatar_url: str = None) -> Optional[dict]:
