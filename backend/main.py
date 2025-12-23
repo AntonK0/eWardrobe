@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from auth import get_current_user, get_user_id
 from database import init_db, close_db, get_or_create_user
+from cloudinary_config import upload_image, delete_image
+import uuid
 
 
 @asynccontextmanager
@@ -76,6 +78,46 @@ async def add_clothing(
         "user_id": user_id,
         "clothing": clothing,
     }
+
+
+@app.post("/api/upload")
+async def upload_clothing_image(
+    file: UploadFile = File(...),
+    user: dict = Depends(get_current_user)
+):
+    """
+    Upload a clothing image to Cloudinary.
+    Returns the image URL to be used when creating a clothing item.
+    """
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}"
+        )
+    
+    # Validate file size (max 10MB)
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max 10MB.")
+    
+    # Generate unique filename
+    ext = file.filename.split(".")[-1] if file.filename else "jpg"
+    unique_filename = f"{uuid.uuid4()}.{ext}"
+    
+    try:
+        # Upload to Cloudinary
+        result = await upload_image(contents, unique_filename)
+        
+        return {
+            "success": True,
+            "image_url": result["url"],
+            "thumbnail_url": result["thumbnail_url"],
+            "public_id": result["public_id"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/outfits")
